@@ -51,3 +51,24 @@ On my MacBook, the correct path is `/Users/duosifan/Codes/fftw/3.3.10`.
     }
    ```
     which is portable enough for most projects.
+## Lessons
+### in-place plan
+While I wrote the FFT accelerated Poisson solver, I plan the in-place real to
+real FFT as this
+```fortran
+    ...
+    real(rp) :: in(nx, ny), out(nx, ny)
+    ...
+    plan = fftw_plan_guru_r2r(rank, dims, howmany_rank, howmany_dims, in, out, [itype], FFTW_ESTIMATE)
+```
+This works fine up to a $128^2$ array. However, my Poisson solver fails at $256^2$.
+After intensive debug, I find the problem is in the FFT since the backward transform
+cannot recover the original data after scaling. Therefore, now, I plan as
+```fortran
+    ...
+    real(rp) :: in(nx, ny)
+    ...
+    plan = fftw_plan_guru_r2r(rank, dims, howmany_rank, howmany_dims, in, in, [itype], FFTW_ESTIMATE)
+```
+It works until $8192^2$. I don't know the reason. However, I learn a lesson as
+**Plan in-place transform with same array**.
